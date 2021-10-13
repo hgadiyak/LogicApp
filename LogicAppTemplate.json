@@ -1,0 +1,137 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "LogicAppName": {
+            "defaultValue": "CGLogicApp",
+            "type": "String"
+        },
+        "ResourceIDofResource": {
+            "defaultValue": "/subscriptions/d16f4bc4-ae2f-4dea-b31e-7487476a32bf/resourceGroups/hgresourcegroup/providers/microsoft.compute/virtualmachines/hgwinvm",
+            "type": "String"
+        },
+        "connections_office365_externalid": {
+            "defaultValue": "/subscriptions/d16f4bc4-ae2f-4dea-b31e-7487476a32bf/resourceGroups/hgResourceGroup/providers/Microsoft.Web/connections/office365",
+            "type": "String"
+        }
+    },
+    "variables": {},
+    "resources": [
+        {
+            "type": "Microsoft.Logic/workflows",
+            "apiVersion": "2017-07-01",
+            "name": "[parameters('LogicAppName')]",
+            "location": "eastus",
+            "properties": {
+                "state": "Enabled",
+                "definition": {
+                    "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        }
+                    },
+                    "triggers": {
+                        "manual": {
+                            "type": "Request",
+                            "kind": "Http",
+                            "inputs": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "actions": {
+                        "Parse_JSON": {
+                            "runAfter": {},
+                            "type": "ParseJson",
+                            "inputs": {
+                                "content": "@triggerBody()",
+                                "schema": {
+                                    "data": {
+                                        "alertContext": {
+                                            "condition": {
+                                                "allOf": [
+                                                    {
+                                                        "dimensions": [],
+                                                        "metricName": "Percentage CPU",
+                                                        "metricNamespace": "Microsoft.Compute/virtualMachines",
+                                                        "metricValue": 1.27777777777778,
+                                                        "operator": "GreaterThan",
+                                                        "threshold": "1",
+                                                        "timeAggregation": "Average",
+                                                        "webTestName": null
+                                                    }
+                                                ],
+                                                "windowEndTime": "2021-09-15T12:55:38.373Z",
+                                                "windowSize": "PT5M",
+                                                "windowStartTime": "2021-09-15T12:50:38.373Z"
+                                            },
+                                            "conditionType": "MultipleResourceMultipleMetricCriteria",
+                                            "properties": null
+                                        },
+                                        "essentials": {
+                                            "alertContextVersion": "1.0",
+                                            "alertId": "/subscriptions/d16f4bc4-ae2f-4dea-b31e-7487476a32bf/providers/Microsoft.AlertsManagement/alerts/32621e44-ec4c-45f4-a895-f9f1a3692401",
+                                            "alertRule": "TestAlert",
+                                            "alertTargetIDs": [
+                                                "[parameters('ResourceIDofResource')]"
+                                            ],
+                                            "configurationItems": [
+                                                "hgwinvm"
+                                            ],
+                                            "description": "",
+                                            "essentialsVersion": "1.0",
+                                            "firedDateTime": "2021-09-15T12:58:49.1549917Z",
+                                            "monitorCondition": "Fired",
+                                            "monitoringService": "Platform",
+                                            "originAlertId": "d16f4bc4-ae2f-4dea-b31e-7487476a32bf_hgResourceGroup_microsoft.insights_metricalerts_TestAlert_533666737",
+                                            "severity": "Sev1",
+                                            "signalType": "Metric"
+                                        }
+                                    },
+                                    "schemaId": "azureMonitorCommonAlertSchema"
+                                }
+                            }
+                        },
+                        "Send_an_email_(V2)": {
+                            "runAfter": {
+                                "Parse_JSON": [
+                                    "Succeeded"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
+                                "body": {
+                                    "Body": "<p>Here are the details<br>\n@{body('Parse_JSON')}<br>\n</p>",
+                                    "Subject": "Major Alert Triggered ",
+                                    "To": "harika.gadiyakari@capgemini.com"
+                                },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['office365']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
+                                "path": "/v2/Mail"
+                            }
+                        }
+                    },
+                    "outputs": {}
+                },
+                "parameters": {
+                    "$connections": {
+                        "value": {
+                            "office365": {
+                                "connectionId": "[parameters('connections_office365_externalid')]",
+                                "connectionName": "office365",
+                                "id": "/subscriptions/d16f4bc4-ae2f-4dea-b31e-7487476a32bf/providers/Microsoft.Web/locations/eastus/managedApis/office365"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}
